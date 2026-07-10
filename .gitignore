@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Secrets (NEVER commit these)
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Trained model artefacts (regenerated at runtime)
+models/
+data/
+
+# Logs / coverage
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Flask legacy
+templates/
+app.py
+docker-compose.yml
+Dockerfile
