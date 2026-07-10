@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LoanAdvisor AI — IBM watsonx Powered</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f0f4ff;
+      --surface: #ffffff;
+      --surface2: #f7f9ff;
+      --border: #dde3f0;
+      --text: #1a1f36;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent2: #7c3aed;
+      --success: #059669;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --card-shadow: 0 4px 24px rgba(37,99,235,0.08);
+      --radius: 16px;
+      --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    [data-theme="dark"] {
+      --bg: #0d1117;
+      --surface: #161b27;
+      --surface2: #1e2535;
+      --border: #2a3348;
+      --text: #e6eaf5;
+      --muted: #8b95b0;
+      --card-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      font-size: 14.5px;
+      line-height: 1.6;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; height: 100vh; width: 240px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 1000;
+      transition: transform var(--transition), background var(--transition);
+    }
+    .sidebar-logo {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .logo-text {
+      font-size: 1.1rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .sidebar-logo .logo-sub { font-size: 0.72rem; color: var(--muted); }
+    .sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 10px; cursor: pointer;
+      color: var(--muted); font-weight: 500; font-size: 0.9rem;
+      transition: background var(--transition), color var(--transition);
+      margin-bottom: 4px; border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: linear-gradient(135deg,#eff6ff,#f3e8ff); color: var(--accent); }
+    [data-theme="dark"] .nav-item.active { background: rgba(37,99,235,0.15); }
+    .nav-item i { font-size: 1.1rem; width: 20px; }
+
+    /* ── Main ── */
+    .main-content { margin-left: 240px; min-height: 100vh; }
+    .topbar {
+      position: sticky; top: 0; z-index: 900;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+    }
+    .topbar-title { font-weight: 700; font-size: 1.05rem; }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .btn-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--muted); cursor: pointer; display: flex;
+      align-items: center; justify-content: center; font-size: 1rem;
+      transition: all var(--transition);
+    }
+    .btn-icon:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.75rem; color: var(--muted);
+      padding: 4px 10px; border-radius: 20px;
+      background: var(--surface2); border: 1px solid var(--border);
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #9ca3af; }
+    .status-dot.online { background: var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+    /* ── Pages ── */
+    .page { display: none; padding: 28px; animation: fadeIn 0.3s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+      box-shadow: var(--card-shadow);
+      transition: background var(--transition), border var(--transition);
+    }
+    .card-title {
+      font-weight: 700; font-size: 1rem; margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title i { color: var(--accent); }
+
+    /* ── Stat tiles ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-tile {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--card-shadow); transition: transform var(--transition);
+    }
+    .stat-tile:hover { transform: translateY(-3px); }
+    .stat-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; margin-bottom: 12px;
+    }
+    .stat-value { font-size: 1.6rem; font-weight: 800; }
+    .stat-label { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .stat-change { font-size: 0.75rem; margin-top: 4px; }
+    .up { color: var(--success); } .down { color: var(--danger); }
+
+    /* ── Form ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.82rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .form-control, .form-select {
+      background: var(--surface2); border: 1.5px solid var(--border);
+      color: var(--text); border-radius: 10px; padding: 9px 13px;
+      font-size: 0.92rem; transition: border var(--transition), box-shadow var(--transition);
+      outline: none; width: 100%;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+    .form-select option { background: var(--surface); color: var(--text); }
+
+    /* ── Buttons ── */
+    .btn-primary-ai {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border: none; border-radius: 12px;
+      padding: 12px 28px; font-weight: 700; font-size: 0.95rem;
+      cursor: pointer; transition: all var(--transition);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary-ai:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,99,235,0.35); }
+    .btn-primary-ai:active { transform: none; }
+    .btn-outline {
+      background: none; border: 1.5px solid var(--border);
+      color: var(--muted); border-radius: 10px; padding: 9px 18px;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
+      transition: all var(--transition);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Result Panel ── */
+    .result-panel {
+      display: none; margin-top: 24px; border-radius: var(--radius);
+      border: 1.5px solid var(--border); overflow: hidden;
+      animation: fadeIn 0.4s ease;
+    }
+    .result-panel.visible { display: block; }
+    .result-header {
+      padding: 20px 24px; display: flex; align-items: center; gap: 14px;
+    }
+    .result-approved { background: linear-gradient(135deg,#d1fae5,#a7f3d0); }
+    .result-rejected { background: linear-gradient(135deg,#fee2e2,#fecaca); }
+    [data-theme="dark"] .result-approved { background: rgba(5,150,105,0.2); }
+    [data-theme="dark"] .result-rejected { background: rgba(220,38,38,0.2); }
+    .result-icon { font-size: 2.4rem; }
+    .result-verdict { font-size: 1.4rem; font-weight: 800; }
+    .result-sub { font-size: 0.85rem; opacity: 0.75; }
+    .confidence-bar-wrap { margin: 16px 24px; }
+    .confidence-label { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .confidence-bar {
+      height: 10px; border-radius: 99px;
+      background: var(--border); overflow: hidden;
+    }
+    .confidence-fill {
+      height: 100%; border-radius: 99px;
+      transition: width 1s ease;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+    .factors-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px 24px 20px; }
+    .factor-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 10px;
+      background: var(--surface2); border: 1px solid var(--border);
+    }
+    .factor-bar-track { flex: 1; height: 6px; border-radius: 99px; background: var(--border); overflow: hidden; }
+    .factor-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 1s ease; }
+    .factor-name { font-size: 0.78rem; font-weight: 600; min-width: 90px; }
+    .factor-pct { font-size: 0.75rem; color: var(--muted); min-width: 36px; text-align: right; }
+
+    /* ── Chat ── */
+    .chat-container { display: flex; flex-direction: column; height: calc(100vh - 116px); }
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .chat-messages::-webkit-scrollbar { width: 5px; }
+    .chat-messages::-webkit-scrollbar-track { background: transparent; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+    .msg-wrap { display: flex; gap: 10px; max-width: 80%; }
+    .msg-wrap.user { align-self: flex-end; flex-direction: row-reverse; }
+    .msg-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem; flex-shrink: 0;
+    }
+    .ai-avatar { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+    .user-avatar { background: var(--surface2); border: 1px solid var(--border); }
+    .msg-bubble {
+      padding: 11px 15px; border-radius: 16px; font-size: 0.9rem; line-height: 1.6;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .ai-bubble {
+      background: var(--surface); border: 1px solid var(--border);
+      border-top-left-radius: 4px;
+    }
+    .user-bubble {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border-top-right-radius: 4px;
+    }
+    .msg-time { font-size: 0.7rem; color: var(--muted); margin-top: 4px; padding: 0 4px; }
+    .chat-input-area {
+      padding: 16px 20px; border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .chat-input-row { display: flex; gap: 10px; align-items: flex-end; }
+    .chat-textarea {
+      flex: 1; background: var(--surface2); border: 1.5px solid var(--border);
+      color: var(--text); border-radius: 14px; padding: 11px 14px;
+      font-size: 0.92rem; resize: none; max-height: 120px;
+      outline: none; font-family: inherit; line-height: 1.5;
+      transition: border var(--transition);
+    }
+    .chat-textarea:focus { border-color: var(--accent); }
+    .btn-send {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; color: #fff; cursor: pointer; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--transition); flex-shrink: 0;
+    }
+    .btn-send:hover { transform: scale(1.08); }
+    .quick-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+    .chip {
+      padding: 5px 12px; border-radius: 20px; font-size: 0.78rem;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--muted); cursor: pointer; transition: all var(--transition);
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent); background: rgba(37,99,235,0.06); }
+    .typing-indicator { display: flex; gap: 5px; align-items: center; padding: 10px 14px; }
+    .typing-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted); animation: typingBounce 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+    /* ── History ── */
+    .history-list { display: flex; flex-direction: column; gap: 12px; }
+    .history-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: transform var(--transition);
+    }
+    .history-card:hover { transform: translateX(4px); }
+    .history-badge {
+      padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+    }
+    .badge-approved { background: #d1fae5; color: #065f46; }
+    .badge-rejected { background: #fee2e2; color: #991b1b; }
+    [data-theme="dark"] .badge-approved { background: rgba(5,150,105,0.2); color: #6ee7b7; }
+    [data-theme="dark"] .badge-rejected { background: rgba(220,38,38,0.2); color: #fca5a5; }
+
+    /* ── Charts ── */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .chart-card canvas { max-height: 230px; }
+
+    /* ── Responsive ── */
+    @media(max-width: 1100px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(max-width: 900px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: none; }
+      .main-content { margin-left: 0; }
+      .form-grid { grid-template-columns: 1fr; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .factors-grid { grid-template-columns: 1fr; }
+    }
+    @media(max-width: 600px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .page { padding: 16px; }
+      .msg-wrap { max-width: 95%; }
+    }
+
+    /* ── Misc ── */
+    .section-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 20px; }
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .spinner {
+      width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.35);
+      border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      padding: 12px 18px; border-radius: 12px; font-size: 0.88rem; font-weight: 600;
+      color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:none;opacity:1} }
+    .toast-success { background: var(--success); }
+    .toast-error { background: var(--danger); }
+    .toast-info { background: var(--accent); }
+    .hamburger { display: none; }
+    @media(max-width:900px) { .hamburger { display: flex; } }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 999; }
+    .overlay.visible { display: block; }
+    .ibm-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.7rem; color: var(--muted); padding: 3px 9px;
+      border-radius: 20px; border: 1px solid var(--border);
+      background: var(--surface2);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar Overlay -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem">
+        <i class="bi bi-bank2"></i>
+      </div>
+      <div>
+        <div class="logo-text">LoanAdvisor AI</div>
+        <div class="logo-sub">Powered by IBM Granite</div>
+      </div>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <button class="nav-item active" onclick="showPage('dashboard',this)">
+      <i class="bi bi-grid-1x2"></i> Dashboard
+    </button>
+    <button class="nav-item" onclick="showPage('predict',this)">
+      <i class="bi bi-lightning-charge"></i> Predict Loan
+    </button>
+    <button class="nav-item" onclick="showPage('chat',this)">
+      <i class="bi bi-chat-dots"></i> AI Assistant
+    </button>
+    <button class="nav-item" onclick="showPage('history',this)">
+      <i class="bi bi-clock-history"></i> History
+    </button>
+    <button class="nav-item" onclick="showPage('analytics',this)">
+      <i class="bi bi-bar-chart-line"></i> Analytics
+    </button>
+  </div>
+  <div style="padding:14px 16px;border-top:1px solid var(--border)">
+    <div class="ibm-badge"><i class="bi bi-cpu"></i> IBM watsonx.ai</div>
+    <div style="font-size:0.7rem;color:var(--muted);margin-top:6px" id="model-label">ibm/granite-13b-chat-v2</div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn-icon hamburger" onclick="openSidebar()"><i class="bi bi-list"></i></button>
+      <span class="topbar-title" id="page-title">Dashboard</span>
+    </div>
+    <div class="topbar-actions">
+      <div class="status-badge">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-label">Connecting…</span>
+      </div>
+      <button class="btn-icon" onclick="toggleDark()" title="Toggle dark mode">
+        <i class="bi bi-moon-stars" id="theme-icon"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ DASHBOARD PAGE ═══ -->
+  <div class="page active" id="page-dashboard">
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-tile">
+        <div class="stat-icon" style="background:#eff6ff"><i class="bi bi-people" style="color:#2563eb"></i></div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">Total Records</div>
+        <div class="stat-change up"><i class="bi bi-arrow-up"></i> Dataset loaded</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-icon" style="background:#d1fae5"><i class="bi bi-check-circle" style="color:#059669"></i></div>
+        <div class="stat-value" id="stat-approval">—</div>
+        <div class="stat-label">Approval Rate</div>
+        <div class="stat-change up" id="stat-approval-sub"></div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-icon" style="background:#fef3c7"><i class="bi bi-cash-stack" style="color:#d97706"></i></div>
+        <div class="stat-value" id="stat-income">—</div>
+        <div class="stat-label">Avg. Applicant Income</div>
+        <div class="stat-change muted">Monthly (₹)</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-icon" style="background:#f3e8ff"><i class="bi bi-wallet2" style="color:#7c3aed"></i></div>
+        <div class="stat-value" id="stat-loan">—</div>
+        <div class="stat-label">Avg. Loan Amount</div>
+        <div class="stat-change muted">In thousands (₹)</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-title"><i class="bi bi-info-circle"></i> Quick Start Guide</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;flex-shrink:0">1</div>
+            <div><div style="font-weight:600;font-size:0.9rem">Fill Applicant Profile</div><div style="font-size:0.82rem;color:var(--muted)">Go to <strong>Predict Loan</strong> and enter income, loan amount, credit history, and other details.</div></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;flex-shrink:0">2</div>
+            <div><div style="font-weight:600;font-size:0.9rem">Run AI Prediction</div><div style="font-size:0.82rem;color:var(--muted)">The Gradient Boosting model analyzes 11 features and gives an approval probability with confidence score.</div></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;flex-shrink:0">3</div>
+            <div><div style="font-weight:600;font-size:0.9rem">Chat with IBM Granite</div><div style="font-size:0.82rem;color:var(--muted)">Ask the AI assistant to explain factors, suggest improvements, or answer general financial questions.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="bi bi-pie-chart"></i> Approval Distribution</div>
+        <canvas id="approvalPieChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PREDICT PAGE ═══ -->
+  <div class="page" id="page-predict">
+    <div class="section-title">Loan Eligibility Prediction</div>
+    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:24px;align-items:start">
+      <!-- Form -->
+      <div class="card">
+        <div class="card-title"><i class="bi bi-person-vcard"></i> Applicant Profile</div>
+        <form id="predict-form" onsubmit="runPrediction(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Gender</label>
+              <select class="form-select" name="Gender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Marital Status</label>
+              <select class="form-select" name="Married">
+                <option value="Yes">Married</option>
+                <option value="No">Single</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Dependents</label>
+              <select class="form-select" name="Dependents">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3+">3+</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Education</label>
+              <select class="form-select" name="Education">
+                <option value="Graduate">Graduate</option>
+                <option value="Not Graduate">Not Graduate</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Employment</label>
+              <select class="form-select" name="Self_Employed">
+                <option value="No">Salaried</option>
+                <option value="Yes">Self-Employed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Property Area</label>
+              <select class="form-select" name="Property_Area">
+                <option value="Urban">Urban</option>
+                <option value="Semiurban">Semiurban</option>
+                <option value="Rural">Rural</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Applicant Income (₹/month)</label>
+              <input class="form-control" type="number" name="ApplicantIncome" value="5000" min="0" required />
+            </div>
+            <div class="form-group">
+              <label>Co-Applicant Income (₹/month)</label>
+              <input class="form-control" type="number" name="CoapplicantIncome" value="0" min="0" />
+            </div>
+            <div class="form-group">
+              <label>Loan Amount (₹ thousands)</label>
+              <input class="form-control" type="number" name="LoanAmount" value="150" min="1" required />
+            </div>
+            <div class="form-group">
+              <label>Loan Term (months)</label>
+              <select class="form-select" name="Loan_Amount_Term">
+                <option value="120">120 (10 yr)</option>
+                <option value="180">180 (15 yr)</option>
+                <option value="240">240 (20 yr)</option>
+                <option value="300">300 (25 yr)</option>
+                <option value="360" selected>360 (30 yr)</option>
+                <option value="480">480 (40 yr)</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Credit History</label>
+              <select class="form-select" name="Credit_History">
+                <option value="1">Good (1.0) — meets guidelines</option>
+                <option value="0">Poor (0.0) — does not meet</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:20px">
+            <button type="submit" class="btn-primary-ai" id="predict-btn">
+              <i class="bi bi-lightning-charge"></i> Predict Eligibility
+            </button>
+            <button type="button" class="btn-outline" onclick="resetForm()">
+              <i class="bi bi-arrow-counterclockwise"></i> Reset
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Result Panel -->
+      <div>
+        <div class="result-panel" id="result-panel">
+          <div class="result-header" id="result-header">
+            <div class="result-icon" id="result-icon"></div>
+            <div>
+              <div class="result-verdict" id="result-verdict"></div>
+              <div class="result-sub" id="result-sub"></div>
+            </div>
+          </div>
+          <div class="confidence-bar-wrap">
+            <div class="confidence-label">
+              <span>Approval Probability</span>
+              <span id="conf-pct">0%</span>
+            </div>
+            <div class="confidence-bar">
+              <div class="confidence-fill" id="conf-fill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- DTI + EMI -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 24px 16px">
+            <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+              <div style="font-size:1.1rem;font-weight:800" id="res-dti">—</div>
+              <div style="font-size:0.72rem;color:var(--muted)">DTI Ratio</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+              <div style="font-size:1.1rem;font-weight:800" id="res-emi">—</div>
+              <div style="font-size:0.72rem;color:var(--muted)">Monthly EMI</div>
+            </div>
+            <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+              <div style="font-size:1.1rem;font-weight:800" id="res-income">—</div>
+              <div style="font-size:0.72rem;color:var(--muted)">Total Income</div>
+            </div>
+          </div>
+
+          <div style="padding:0 24px 6px;font-size:0.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em">Feature Impact</div>
+          <div class="factors-grid" id="factors-grid"></div>
+
+          <div style="padding:16px 24px 20px">
+            <button class="btn-primary-ai" style="width:100%;justify-content:center" onclick="askAIAboutResult()">
+              <i class="bi bi-chat-dots"></i> Ask AI to Explain This Result
+            </button>
+          </div>
+        </div>
+
+        <!-- Placeholder when no result yet -->
+        <div id="result-placeholder" class="card" style="text-align:center;padding:40px 20px">
+          <i class="bi bi-shield-check" style="font-size:3rem;color:var(--border);display:block;margin-bottom:14px"></i>
+          <div style="font-weight:700;font-size:1rem;margin-bottom:6px">No prediction yet</div>
+          <div style="color:var(--muted);font-size:0.85rem">Fill in the applicant profile and click <strong>Predict Eligibility</strong> to see the result here.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CHAT PAGE ═══ -->
+  <div class="page" id="page-chat">
+    <div class="chat-container card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem">
+          <i class="bi bi-robot"></i>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:0.95rem">LoanAdvisor AI</div>
+          <div style="font-size:0.75rem;color:var(--success);display:flex;align-items:center;gap:4px">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--success);display:inline-block"></span>
+            IBM Granite • Always available
+          </div>
+        </div>
+        <button class="btn-outline" style="margin-left:auto;font-size:0.8rem;padding:6px 12px" onclick="clearChat()">
+          <i class="bi bi-trash3"></i> Clear
+        </button>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-area">
+        <div class="quick-chips" id="quick-chips">
+          <span class="chip" onclick="sendChip(this)">How to improve eligibility?</span>
+          <span class="chip" onclick="sendChip(this)">What is a good credit score?</span>
+          <span class="chip" onclick="sendChip(this)">Explain my loan result</span>
+          <span class="chip" onclick="sendChip(this)">Required documents</span>
+          <span class="chip" onclick="sendChip(this)">Calculate my EMI</span>
+        </div>
+        <div class="chat-input-row">
+          <textarea class="chat-textarea" id="chat-input" rows="1"
+            placeholder="Ask about loan eligibility, credit scores, financial planning…"
+            onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="btn-send" onclick="sendMessage()" title="Send">
+            <i class="bi bi-send"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ HISTORY PAGE ═══ -->
+  <div class="page" id="page-history">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div class="section-title" style="margin-bottom:0">Prediction History</div>
+      <button class="btn-outline" onclick="loadHistory()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+    <div class="card">
+      <div class="history-list" id="history-list">
+        <div style="text-align:center;padding:40px;color:var(--muted)">
+          <i class="bi bi-clock-history" style="font-size:2.5rem;display:block;margin-bottom:10px"></i>
+          No predictions yet. Run a prediction first.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ANALYTICS PAGE ═══ -->
+  <div class="page" id="page-analytics">
+    <div class="section-title">Dataset Analytics</div>
+    <div class="charts-grid" id="charts-grid">
+      <div class="chart-card">
+        <div class="card-title" style="margin-bottom:12px"><i class="bi bi-mortarboard"></i> Approval by Education</div>
+        <canvas id="eduChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="card-title" style="margin-bottom:12px"><i class="bi bi-geo-alt"></i> Approval by Property Area</div>
+        <canvas id="propChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="card-title" style="margin-bottom:12px"><i class="bi bi-shield-check"></i> Credit History Distribution</div>
+        <canvas id="creditChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="card-title" style="margin-bottom:12px"><i class="bi bi-bar-chart"></i> Income Brackets</div>
+        <canvas id="incomeChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ══ App State ══════════════════════════════════════════════════════════
+const state = {
+  lastPrediction: null,
+  chatHistory: [],
+  charts: {},
+  darkMode: localStorage.getItem("theme") === "dark"
+};
+
+// ══ Init ═══════════════════════════════════════════════════════════════
+document.addEventListener("DOMContentLoaded", () => {
+  if (state.darkMode) applyDark();
+  checkStatus();
+  loadDashboardStats();
+  addChatMessage("ai", "👋 Hello! I'm **LoanAdvisor AI**, powered by IBM Granite.\n\nI can help you analyze loan applications, explain approval factors, suggest improvements, and answer financial questions.\n\nFill in an applicant profile and run a prediction to get started, or ask me anything!");
+});
+
+// ══ Navigation ═════════════════════════════════════════════════════════
+function showPage(name, btn) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("page-" + name).classList.add("active");
+  if (btn) btn.classList.add("active");
+  const titles = { dashboard:"Dashboard", predict:"Predict Loan", chat:"AI Assistant", history:"History", analytics:"Analytics" };
+  document.getElementById("page-title").textContent = titles[name] || name;
+  closeSidebar();
+  if (name === "history") loadHistory();
+  if (name === "analytics") loadAnalyticsCharts();
+}
+
+function openSidebar() {
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("overlay").classList.add("visible");
+}
+function closeSidebar() {
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("visible");
+}
+
+// ══ Dark Mode ══════════════════════════════════════════════════════════
+function toggleDark() {
+  state.darkMode = !state.darkMode;
+  localStorage.setItem("theme", state.darkMode ? "dark" : "light");
+  state.darkMode ? applyDark() : applyLight();
+}
+function applyDark() {
+  document.documentElement.setAttribute("data-theme","dark");
+  document.getElementById("theme-icon").className = "bi bi-sun";
+  updateChartsTheme();
+}
+function applyLight() {
+  document.documentElement.setAttribute("data-theme","light");
+  document.getElementById("theme-icon").className = "bi bi-moon-stars";
+  updateChartsTheme();
+}
+function updateChartsTheme() {
+  Object.values(state.charts).forEach(c => {
+    if (!c) return;
+    const gridColor = state.darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+    const textColor = state.darkMode ? "#8b95b0" : "#6b7280";
+    if (c.options.scales) {
+      Object.values(c.options.scales).forEach(ax => {
+        if (ax.grid) ax.grid.color = gridColor;
+        if (ax.ticks) ax.ticks.color = textColor;
+      });
+    }
+    if (c.options.plugins?.legend?.labels) c.options.plugins.legend.labels.color = textColor;
+    c.update();
+  });
+}
+
+// ══ Status ═════════════════════════════════════════════════════════════
+async function checkStatus() {
+  try {
+    const r = await fetch("/api/status");
+    const d = await r.json();
+    const dot = document.getElementById("status-dot");
+    const lbl = document.getElementById("status-label");
+    if (d.model_ready) {
+      dot.className = "status-dot online";
+      lbl.textContent = d.watsonx_available ? "Granite connected" : "ML model ready";
+      document.getElementById("model-label").textContent = d.granite_model;
+    } else {
+      dot.className = "status-dot";
+      lbl.textContent = "Model training…";
+    }
+  } catch(e) {
+    document.getElementById("status-label").textContent = "Offline";
+  }
+}
+
+// ══ Dashboard Stats ════════════════════════════════════════════════════
+async function loadDashboardStats() {
+  try {
+    const r = await fetch("/api/dataset-stats");
+    const d = await r.json();
+    if (d.error) return;
+    document.getElementById("stat-total").textContent = d.total_records.toLocaleString();
+    document.getElementById("stat-approval").textContent = d.approval_rate + "%";
+    document.getElementById("stat-approval-sub").textContent = "Based on " + d.total_records + " records";
+    document.getElementById("stat-income").textContent = "₹" + (d.avg_income/1000).toFixed(1) + "k";
+    document.getElementById("stat-loan").textContent = "₹" + d.avg_loan + "k";
+    renderApprovalPie(d);
+  } catch(e) { console.error(e); }
+}
+
+function renderApprovalPie(d) {
+  const ctx = document.getElementById("approvalPieChart").getContext("2d");
+  const approved = Math.round(d.total_records * d.approval_rate / 100);
+  const rejected = d.total_records - approved;
+  state.charts["approvalPie"] = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: ["Approved", "Rejected"],
+      datasets: [{ data: [approved, rejected], backgroundColor: ["#059669","#dc2626"], borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, cutout: "65%",
+      plugins: {
+        legend: { position:"bottom", labels:{ color: state.darkMode?"#8b95b0":"#6b7280", font:{size:12} }},
+        tooltip: { callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} (${((ctx.raw/d.total_records)*100).toFixed(1)}%)` }}
+      }
+    }
+  });
+}
+
+// ══ Prediction ═════════════════════════════════════════════════════════
+async function runPrediction(e) {
+  e.preventDefault();
+  const btn = document.getElementById("predict-btn");
+  btn.innerHTML = '<span class="spinner"></span> Analyzing…';
+  btn.disabled = true;
+
+  const fd = new FormData(e.target);
+  const payload = {};
+  fd.forEach((v, k) => { payload[k] = isNaN(v) ? v : Number(v); });
+
+  try {
+    const r = await fetch("/api/predict", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (data.error) { showToast(data.error, "error"); return; }
+    state.lastPrediction = { prediction: data, applicant: payload };
+    renderResult(data);
+    showToast("Prediction complete!", "success");
+  } catch(err) {
+    showToast("Prediction failed. Is the server running?", "error");
+  } finally {
+    btn.innerHTML = '<i class="bi bi-lightning-charge"></i> Predict Eligibility';
+    btn.disabled = false;
+  }
+}
+
+function renderResult(data) {
+  document.getElementById("result-placeholder").style.display = "none";
+  const panel = document.getElementById("result-panel");
+  panel.classList.add("visible");
+
+  const hdr = document.getElementById("result-header");
+  hdr.className = "result-header " + (data.approved ? "result-approved" : "result-rejected");
+  document.getElementById("result-icon").textContent = data.approved ? "✅" : "❌";
+  document.getElementById("result-verdict").textContent = data.approved ? "Loan Approved" : "Loan Not Approved";
+  document.getElementById("result-sub").textContent =
+    `${data.confidence}% confidence  •  ${data.approved ? data.approval_probability : data.rejection_probability}% probability`;
+
+  // Confidence bar
+  setTimeout(() => {
+    document.getElementById("conf-fill").style.width = data.approval_probability + "%";
+    document.getElementById("conf-pct").textContent = data.approval_probability + "%";
+  }, 100);
+
+  document.getElementById("res-dti").textContent = data.dti_ratio + "%";
+  document.getElementById("res-emi").textContent = "₹" + data.monthly_emi.toLocaleString();
+  document.getElementById("res-income").textContent = "₹" + data.total_income.toLocaleString();
+
+  // Feature impact bars
+  const grid = document.getElementById("factors-grid");
+  grid.innerHTML = "";
+  data.feature_impact.forEach(f => {
+    const item = document.createElement("div");
+    item.className = "factor-item";
+    item.innerHTML = `
+      <div class="factor-name">${f.feature}</div>
+      <div class="factor-bar-track">
+        <div class="factor-bar-fill" style="width:0%" data-w="${f.importance}"></div>
+      </div>
+      <div class="factor-pct">${f.importance}%</div>`;
+    grid.appendChild(item);
+  });
+  setTimeout(() => {
+    grid.querySelectorAll(".factor-bar-fill").forEach(el => {
+      el.style.width = el.dataset.w + "%";
+    });
+  }, 150);
+}
+
+function resetForm() {
+  document.getElementById("predict-form").reset();
+  document.getElementById("result-panel").classList.remove("visible");
+  document.getElementById("result-placeholder").style.display = "";
+  state.lastPrediction = null;
+}
+
+// ══ AI Chat ═════════════════════════════════════════════════════════════
+function addChatMessage(role, text, time) {
+  const container = document.getElementById("chat-messages");
+  const wrap = document.createElement("div");
+  wrap.className = "msg-wrap " + role;
+
+  const avatar = document.createElement("div");
+  avatar.className = "msg-avatar " + (role === "ai" ? "ai-avatar" : "user-avatar");
+  avatar.innerHTML = role === "ai" ? '<i class="bi bi-robot"></i>' : '<i class="bi bi-person"></i>';
+
+  const inner = document.createElement("div");
+  const bubble = document.createElement("div");
+  bubble.className = "msg-bubble " + (role === "ai" ? "ai-bubble" : "user-bubble");
+  bubble.textContent = text.replace(/\*\*(.*?)\*\*/g, "$1"); // strip markdown bold for plain text
+  bubble.innerHTML = formatMarkdown(text);
+
+  const ts = document.createElement("div");
+  ts.className = "msg-time";
+  ts.textContent = time || new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+
+  inner.appendChild(bubble);
+  inner.appendChild(ts);
+  wrap.appendChild(avatar);
+  wrap.appendChild(inner);
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+}
+
+function formatMarkdown(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/•\s/g, "• ")
+    .replace(/\n/g, "<br>");
+}
+
+function showTyping() {
+  const container = document.getElementById("chat-messages");
+  const wrap = document.createElement("div");
+  wrap.className = "msg-wrap ai"; wrap.id = "typing-msg";
+  wrap.innerHTML = `
+    <div class="msg-avatar ai-avatar"><i class="bi bi-robot"></i></div>
+    <div class="msg-bubble ai-bubble">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+      </div>
+    </div>`;
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+}
+function removeTyping() {
+  const el = document.getElementById("typing-msg");
+  if (el) el.remove();
+}
+
+async function sendMessage() {
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = ""; autoResize(input);
+
+  addChatMessage("user", text);
+  state.chatHistory.push({ role:"user", content:text });
+  showTyping();
+
+  try {
+    const r = await fetch("/api/chat", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        message: text,
+        loan_context: state.lastPrediction,
+        history: state.chatHistory.slice(-6)
+      })
+    });
+    const d = await r.json();
+    removeTyping();
+    const reply = d.response || "Sorry, I couldn't process that.";
+    addChatMessage("ai", reply, d.timestamp);
+    state.chatHistory.push({ role:"assistant", content:reply });
+  } catch(err) {
+    removeTyping();
+    addChatMessage("ai", "Connection error. Please ensure the Flask server is running.");
+  }
+}
+
+function handleChatKey(e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function sendChip(el) { document.getElementById("chat-input").value = el.textContent; sendMessage(); }
+function clearChat() {
+  document.getElementById("chat-messages").innerHTML = "";
+  state.chatHistory = [];
+  addChatMessage("ai","Chat cleared. How can I help you?");
+}
+function autoResize(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+}
+function askAIAboutResult() {
+  showPage("chat", document.querySelectorAll(".nav-item")[2]);
+  document.getElementById("chat-input").value = "Explain my loan prediction result and what factors affected it most.";
+  sendMessage();
+}
+
+// ══ History ═════════════════════════════════════════════════════════════
+async function loadHistory() {
+  try {
+    const r = await fetch("/api/history");
+    const items = await r.json();
+    const list = document.getElementById("history-list");
+    if (!items.length) {
+      list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted)">
+        <i class="bi bi-clock-history" style="font-size:2.5rem;display:block;margin-bottom:10px"></i>
+        No predictions yet.</div>`;
+      return;
+    }
+    list.innerHTML = items.reverse().map(h => `
+      <div class="history-card">
+        <div>
+          <div style="font-weight:700;font-size:0.9rem">Application #${h.id}</div>
+          <div style="font-size:0.78rem;color:var(--muted)">${h.timestamp} • Income: ₹${Number(h.applicant.income).toLocaleString()} • Loan: ₹${h.applicant.loan_amount}k</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Education: ${h.applicant.education} • Area: ${h.applicant.property_area} • Credit: ${h.applicant.credit_history == 1 ? "✅ Good" : "❌ Poor"}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <span class="history-badge ${h.approved ? "badge-approved" : "badge-rejected"}">${h.approved ? "✅ Approved" : "❌ Rejected"}</span>
+          <span style="font-size:0.75rem;color:var(--muted)">${h.confidence}% confidence</span>
+        </div>
+      </div>`).join("");
+  } catch(e) { console.error(e); }
+}
+
+// ══ Analytics Charts ════════════════════════════════════════════════════
+async function loadAnalyticsCharts() {
+  try {
+    const r = await fetch("/api/dataset-stats");
+    const d = await r.json();
+    if (d.error) return;
+    const grid = state.darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+    const ticks = state.darkMode ? "#8b95b0" : "#6b7280";
+    const opts = (title) => ({
+      responsive:true,
+      plugins:{ legend:{ labels:{color:ticks,font:{size:12}} }, title:{display:false} },
+      scales:{ x:{grid:{color:grid},ticks:{color:ticks}}, y:{grid:{color:grid},ticks:{color:ticks}} }
+    });
+
+    if (!state.charts["edu"]) {
+      state.charts["edu"] = new Chart(document.getElementById("eduChart"), {
+        type:"bar",
+        data:{
+          labels: Object.keys(d.education_dist),
+          datasets:[{ label:"Count", data:Object.values(d.education_dist),
+            backgroundColor:["#3b82f6","#8b5cf6"], borderRadius:8, borderSkipped:false }]
+        },
+        options: opts()
+      });
+    }
+    if (!state.charts["prop"]) {
+      state.charts["prop"] = new Chart(document.getElementById("propChart"), {
+        type:"doughnut",
+        data:{
+          labels: Object.keys(d.property_dist),
+          datasets:[{ data:Object.values(d.property_dist),
+            backgroundColor:["#2563eb","#7c3aed","#059669"], borderWidth:0, hoverOffset:6 }]
+        },
+        options:{ responsive:true, cutout:"60%", plugins:{ legend:{ position:"bottom", labels:{color:ticks,font:{size:12}} } }}
+      });
+    }
+    if (!state.charts["credit"]) {
+      state.charts["credit"] = new Chart(document.getElementById("creditChart"), {
+        type:"doughnut",
+        data:{
+          labels: Object.keys(d.credit_dist),
+          datasets:[{ data:Object.values(d.credit_dist),
+            backgroundColor:["#059669","#dc2626"], borderWidth:0, hoverOffset:6 }]
+        },
+        options:{ responsive:true, cutout:"60%", plugins:{ legend:{ position:"bottom", labels:{color:ticks,font:{size:12}} } }}
+      });
+    }
+    if (!state.charts["income"]) {
+      state.charts["income"] = new Chart(document.getElementById("incomeChart"), {
+        type:"bar",
+        data:{
+          labels: Object.keys(d.income_buckets),
+          datasets:[{ label:"Applicants", data:Object.values(d.income_buckets),
+            backgroundColor:["#bfdbfe","#93c5fd","#60a5fa","#3b82f6"], borderRadius:8, borderSkipped:false }]
+        },
+        options: opts()
+      });
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ══ Toast ═══════════════════════════════════════════════════════════════
+function showToast(msg, type="info") {
+  const c = document.getElementById("toast-container");
+  const t = document.createElement("div");
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<i class="bi bi-${type==="success"?"check-circle":type==="error"?"x-circle":"info-circle"}"></i> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+</script>
+</body>
+</html>
