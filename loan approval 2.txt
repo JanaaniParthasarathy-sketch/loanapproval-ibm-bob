@@ -1,0 +1,1 @@
+https://loan-approval-pjan.streamlit.app/             app link loan approval
